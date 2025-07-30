@@ -18,10 +18,10 @@ logger = logging.getLogger('teleop_ur')
 class PIKATELEOP():
     def __init__(self):
         self.tools = MATHTOOLS()
-        self.ur_control = URCONTROL("192.168.1.15")
-        self.pika_to_arm = [0,0,0,   0, 1.570796, 0]
         
-        self.target_device = "T20"
+        self.ur_control = URCONTROL("192.168.1.15")    # UR IP，根据配置的IP地址进行修改
+        self.pika_to_arm = [0,0,0,   0, 1.570796, 0]   # pika坐标系到机械臂末端坐标系的旋转
+        self.target_device = "T20"   # tracker 设备名称
         
         self.initial_pose_rotvec = self.ur_control.get_tcp_pose()
         temp_rotvec = [self.initial_pose_rotvec[3],self.initial_pose_rotvec[4],self.initial_pose_rotvec[5]]
@@ -80,6 +80,7 @@ class PIKATELEOP():
         # 将sense弧度直接发送给gripper
         self.gripper.set_motor_angle(encoder_data['rad'])
     
+    # 遥操作触发
     def handle_trigger(self):
         current_value = self.sense.get_command_state()
         
@@ -96,6 +97,9 @@ class PIKATELEOP():
             
             elif not self.bool_trigger :
                 self.flag = False
+                
+                #-------------------------------------------------方案一：遥操结束机械臂停止在当前位姿，下次遥操开始继续从当前位姿开始---------------------------------------------------
+                
                 self.initial_pose_rotvec = self.ur_control.get_tcp_pose()
                 
                 temp_rotvec = [self.initial_pose_rotvec[3], self.initial_pose_rotvec[4], self.initial_pose_rotvec[5]]
@@ -110,7 +114,32 @@ class PIKATELEOP():
                 
                 self.base_pose = self.initial_pose_rpy # 想要的目标姿态数据
                 print("停止遥操")
+                
+                #-------------------------------------------------方案二：遥操结束机械臂回到初始位姿，下次遥操开始从初始位姿开始---------------------------------------------------
+                
+                # # 获取当前机械臂的位姿
+                # current_pose = self.ur_control.get_tcp_pose()
 
+                # # 定义插值步数
+                # num_steps = 100  # 可以根据需要调整步数，步数越多，过渡越平滑
+
+                # for i in range(1, num_steps + 1):
+                #     # 计算当前插值点位姿
+                #     # 这里假设 initial_pose_rotvec 和 current_pose 都是 [x, y, z, Rx, Ry, Rz] 格式
+                #     interpolated_pose = [
+                #         current_pose[j] + (self.initial_pose_rotvec[j] - current_pose[j]) * i / num_steps
+                #         for j in range(6)
+                #     ]
+                #     self.ur_control.sevol_l(interpolated_pose)
+                #     time.sleep(0.01)  # 每次插值之间稍作延时，控制速度
+
+                # # 确保最终到达初始位置
+                # self.ur_control.sevol_l(self.initial_pose_rotvec)
+
+
+                # self.base_pose = [self.x, self.y, self.z, self.roll, self.pitch, self.yaw]
+                # print("停止遥操")
+            
     # 增量式控制
     def calc_pose_incre(self,base_pose, pose_data):
         begin_matrix = self.tools.xyzrpy2Mat(base_pose[0], base_pose[1], base_pose[2],
@@ -136,12 +165,11 @@ class PIKATELEOP():
         
         return x_,y_,z_,Rx_,Ry_,Rz_
     
+    # 获取tracker设备的位姿数据
     def get_tracker_pose(self):
-        
-        # 循环获取WM0设备的位姿数据
         logger.info(f"开始获取{self.target_device}设备的位姿数据...")
         while True:
-            # 获取WM0设备的位姿数据
+            # 获取位姿数据
             pose = self.sense.get_pose(self.target_device)
             if pose:
                 # 提取位置和旋转数据用于进一步处理
@@ -179,6 +207,7 @@ class PIKATELEOP():
         self.running = False 
         if self.tracker_thread.is_alive():
             self.tracker_thread.join() # 等待tracker线程结束
+        self.ur_control.disconnect() # 机械臂断连
 
 if __name__ == "__main__":
     

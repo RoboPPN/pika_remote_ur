@@ -1,6 +1,5 @@
 import rtde_control
 import rtde_receive
-import numpy as np
 
 class URCONTROL:
     def __init__(self,robot_ip):
@@ -28,8 +27,16 @@ class URCONTROL:
     def get_tcp_pose(self):
         return self.rtde_r.getActualTCPPose()
     
+    def disconnect(self):
+        if self.rtde_c:
+            self.rtde_c.disconnect()
+        if self.rtde_r:
+            self.rtde_r.disconnect()
+        print("已断开UR连接")
+
+# example
 # if __name__ == "__main__":
-#     ur = URCONTROL()
+#     ur = URCONTROL("192.168.1.15")
 #     target_pose = [0.437, -0.1, 0.846, -0.11019068574221307, 1.59479642933605, 0.07061926626169934]
     
 #     ur.sevol_l(target_pose)
