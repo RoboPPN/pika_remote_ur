@@ -1,4 +1,4 @@
-[submodule "/pika_sdk"]
-	path = /pika_sdk
+[submodule "pika_sdk"]
+	path = pika_sdk
 	url = https://github.com/agilexrobotics/pika_sdk.git
 
