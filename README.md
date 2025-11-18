@@ -18,7 +18,7 @@
 1、克隆代码
 
 ```bash
-git clone --recursive https://github.com/RoboPPN/pika_remote_ur.git
+git clone --recurse-submodules https://github.com/RoboPPN/pika_remote_ur.git
 ```
 
 2、安装依赖
